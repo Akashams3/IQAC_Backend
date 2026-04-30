@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/iqac/teaching-schedule")
+@RequestMapping("/iqac/academics/planning/teaching-schedule")
 public class TeachingScheduleController {
 
     private final TeachingScheduleService teachingScheduleService;

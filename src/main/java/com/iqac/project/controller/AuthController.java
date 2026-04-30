@@ -1,9 +1,11 @@
 package com.iqac.project.controller;
 
+import com.iqac.project.dto.ChangePasswordRequest;
 import com.iqac.project.dto.LoginRequest;
 import com.iqac.project.dto.LoginResponse;
 import com.iqac.project.service.AuthService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -19,5 +21,11 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<String> changePassword(@RequestBody ChangePasswordRequest request, Authentication auth) {
+        authService.changePassword(auth.getName(), request);
+        return ResponseEntity.ok("Password changed successfully");
     }
 }

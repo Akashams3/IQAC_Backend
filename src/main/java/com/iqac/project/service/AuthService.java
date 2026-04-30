@@ -1,6 +1,7 @@
 package com.iqac.project.service;
 
 import com.iqac.project.config.JwtUtil;
+import com.iqac.project.dto.ChangePasswordRequest;
 import com.iqac.project.dto.LoginRequest;
 import com.iqac.project.dto.LoginResponse;
 import com.iqac.project.entity.User;
@@ -20,6 +21,17 @@ public class AuthService {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
+    }
+
+    public void changePassword(String email, ChangePasswordRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UnauthorizedException("User not found"));
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword()))
+            throw new UnauthorizedException("Current password is incorrect");
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
     }
 
     public LoginResponse login(LoginRequest request) {

@@ -37,7 +37,6 @@ public class SecurityConfig {
                 .requestMatchers("/iqac/department/**").hasRole("HOD")
                 .requestMatchers("/iqac/faculty/**").hasRole("HOD")
                 .requestMatchers("/iqac/academics/**").hasRole("HOD")
-                .requestMatchers("/iqac/teaching-schedule/**").hasRole("HOD")
                 .requestMatchers(HttpMethod.POST, "/iqac/**").hasRole("HOD")
                 .requestMatchers(HttpMethod.PUT, "/iqac/**").hasRole("HOD")
                 .requestMatchers(HttpMethod.DELETE, "/iqac/**").hasRole("HOD")
