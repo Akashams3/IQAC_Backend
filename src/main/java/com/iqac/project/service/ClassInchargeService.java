@@ -57,11 +57,18 @@ public class ClassInchargeService {
         repo.save(entity);
     }
 
-    // ✅ GET ALL
-    public List<ClassIncharge> getAll(Long deptId, String academicYear) {
-        if (academicYear != null)
-            return repo.findByDepartmentIdAndAcademicYear(deptId, academicYear);
-        return repo.findByDepartmentId(deptId);
+    public List<ClassInchargeResponse> getAll(Long deptId, String academicYear) {
+        List<ClassIncharge> list = academicYear != null
+                ? repo.findByDepartmentIdAndAcademicYear(deptId, academicYear)
+                : repo.findByDepartmentId(deptId);
+        return list.stream().map(e -> ClassInchargeResponse.builder()
+                .id(e.getId())
+                .className(e.getClassName())
+                .academicYear(e.getAcademicYear())
+                .facultyId(e.getFaculty().getId())
+                .facultyName(e.getFaculty().getFacultyName())
+                .email(e.getFaculty().getEmail())
+                .build()).toList();
     }
 
     // ✅ GET BY ID (with faculty details automatically)
@@ -106,6 +113,10 @@ public class ClassInchargeService {
         existing.setFaculty(faculty);
 
         repo.save(existing);
+    }
+
+    public void deleteByYear(Long deptId, String academicYear) {
+        repo.deleteByDepartmentIdAndAcademicYear(deptId, academicYear);
     }
 
     // ✅ DELETE

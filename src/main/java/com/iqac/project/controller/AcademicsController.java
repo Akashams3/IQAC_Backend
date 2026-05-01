@@ -2,9 +2,11 @@ package com.iqac.project.controller;
 
 import com.iqac.project.dto.ClassInchargeRequest;
 import com.iqac.project.dto.ClassInchargeResponse;
-import com.iqac.project.entity.ClassIncharge;
+import com.iqac.project.dto.ClassMentorRequest;
+import com.iqac.project.dto.ClassMentorResponse;
 import com.iqac.project.entity.Timetable;
 import com.iqac.project.service.ClassInchargeService;
+import com.iqac.project.service.ClassMentorService;
 import com.iqac.project.service.TimetableService;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -23,12 +25,14 @@ public class AcademicsController {
 
     private final TimetableService timetableService;
     private final ClassInchargeService classInchargeService;
+    private final ClassMentorService classMentorService;
     private final MessageSource messageSource;
 
     public AcademicsController(TimetableService timetableService, ClassInchargeService classInchargeService,
-                               MessageSource messageSource) {
+                               ClassMentorService classMentorService, MessageSource messageSource) {
         this.timetableService = timetableService;
         this.classInchargeService = classInchargeService;
+        this.classMentorService = classMentorService;
         this.messageSource = messageSource;
     }
 
@@ -121,7 +125,7 @@ public class AcademicsController {
 
     @PreAuthorize("hasAnyRole('IQAC_COORDINATOR', 'HOD')")
     @GetMapping("/incharge")
-    public ResponseEntity<List<ClassIncharge>> getAllIncharge(
+    public ResponseEntity<List<ClassInchargeResponse>> getAllIncharge(
             @RequestParam(required = false) String academicYear,
             Authentication auth) {
         return ResponseEntity.ok(classInchargeService.getAll(getDeptId(auth), academicYear));
@@ -149,11 +153,75 @@ public class AcademicsController {
     }
 
     @PreAuthorize("hasRole('IQAC_COORDINATOR')")
+    @DeleteMapping("/incharge")
+    public ResponseEntity<String> deleteInchargeByYear(
+            @RequestParam String academicYear,
+            Authentication auth) {
+        classInchargeService.deleteByYear(getDeptId(auth), academicYear);
+        return ResponseEntity.ok("Deleted successfully");
+    }
+
+    @PreAuthorize("hasRole('IQAC_COORDINATOR')")
     @DeleteMapping("/incharge/{id}")
     public ResponseEntity<String> deleteIncharge(
             @PathVariable Long id,
             Authentication auth) {
         classInchargeService.delete(id, getDeptId(auth));
+        return ResponseEntity.ok("Deleted successfully");
+    }
+
+    // ── Class Mentor ───────────────────────────────────────────
+
+    @PreAuthorize("hasRole('IQAC_COORDINATOR')")
+    @PostMapping("/mentor")
+    public ResponseEntity<String> createMentor(
+            @RequestBody ClassMentorRequest req,
+            Authentication auth) {
+        classMentorService.create(getDeptId(auth), req);
+        return ResponseEntity.ok("Created successfully");
+    }
+
+    @PreAuthorize("hasAnyRole('IQAC_COORDINATOR','HOD')")
+    @GetMapping("/mentor")
+    public ResponseEntity<List<ClassMentorResponse>> getAllMentor(
+            @RequestParam(required = false) String academicYear,
+            Authentication auth) {
+        return ResponseEntity.ok(classMentorService.getAll(getDeptId(auth), academicYear));
+    }
+
+    @PreAuthorize("hasAnyRole('IQAC_COORDINATOR','HOD')")
+    @GetMapping("/mentor/{id}")
+    public ResponseEntity<ClassMentorResponse> getMentorById(
+            @PathVariable Long id,
+            Authentication auth) {
+        return ResponseEntity.ok(classMentorService.getById(id, getDeptId(auth)));
+    }
+
+    @PreAuthorize("hasRole('IQAC_COORDINATOR')")
+    @PutMapping("/mentor/{id}")
+    public ResponseEntity<String> updateMentor(
+            @PathVariable Long id,
+            @RequestBody ClassMentorRequest req,
+            Authentication auth) {
+        classMentorService.update(id, getDeptId(auth), req);
+        return ResponseEntity.ok("Updated successfully");
+    }
+
+    @PreAuthorize("hasRole('IQAC_COORDINATOR')")
+    @DeleteMapping("/mentor")
+    public ResponseEntity<String> deleteMentorByYear(
+            @RequestParam String academicYear,
+            Authentication auth) {
+        classMentorService.deleteByYear(getDeptId(auth), academicYear);
+        return ResponseEntity.ok("Deleted successfully");
+    }
+
+    @PreAuthorize("hasRole('IQAC_COORDINATOR')")
+    @DeleteMapping("/mentor/{id}")
+    public ResponseEntity<String> deleteMentor(
+            @PathVariable Long id,
+            Authentication auth) {
+        classMentorService.delete(id, getDeptId(auth));
         return ResponseEntity.ok("Deleted successfully");
     }
 }
