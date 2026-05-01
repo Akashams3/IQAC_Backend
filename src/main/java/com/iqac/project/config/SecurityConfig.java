@@ -48,7 +48,20 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT, "/iqac/department/**").hasRole("IQAC_COORDINATOR")
                 .requestMatchers(HttpMethod.DELETE, "/iqac/department/**").hasRole("IQAC_COORDINATOR")
                 // academics
-                .requestMatchers("/iqac/academics/**").hasRole("HOD")
+
+                    .requestMatchers(HttpMethod.GET, "/iqac/academics/**")
+                    .hasAnyRole("HOD","IQAC_COORDINATOR")
+
+                    .requestMatchers(HttpMethod.POST, "/iqac/academics/**")
+                    .hasRole("IQAC_COORDINATOR")
+
+                    .requestMatchers(HttpMethod.PUT, "/iqac/academics/**")
+                    .hasRole("IQAC_COORDINATOR")
+
+                    .requestMatchers(HttpMethod.DELETE, "/iqac/academics/**")
+                    .hasRole("IQAC_COORDINATOR")
+
+
                 // generic
                 .requestMatchers(HttpMethod.GET, "/iqac/**").hasAnyRole("HOD", "FACULTY", "IQAC_COORDINATOR")
                 .requestMatchers(HttpMethod.POST, "/iqac/**").hasAnyRole("HOD", "IQAC_COORDINATOR")

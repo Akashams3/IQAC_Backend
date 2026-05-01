@@ -33,4 +33,7 @@ public class Timetable {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "department_id", nullable = false)
     private Department department;
+
+    @Column(name = "semester", nullable = false)
+    private String semester;
 }

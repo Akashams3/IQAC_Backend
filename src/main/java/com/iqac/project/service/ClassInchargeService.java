@@ -1,66 +1,118 @@
 package com.iqac.project.service;
 
+import com.iqac.project.dto.ClassInchargeRequest;
+import com.iqac.project.dto.ClassInchargeResponse;
 import com.iqac.project.entity.ClassIncharge;
 import com.iqac.project.entity.Department;
+import com.iqac.project.entity.Faculty;
 import com.iqac.project.exception.ResourceNotFoundException;
 import com.iqac.project.repository.ClassInchargeRepository;
 import com.iqac.project.repository.DepartmentRepository;
-import com.iqac.project.util.ExcelHelper;
-import org.springframework.context.MessageSource;
-import org.springframework.context.i18n.LocaleContextHolder;
+import com.iqac.project.repository.FacultyRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 @Service
+@Transactional
 public class ClassInchargeService {
 
-    private final ClassInchargeRepository classInchargeRepository;
-    private final DepartmentRepository departmentRepository;
-    private final MessageSource messageSource;
+    private final ClassInchargeRepository repo;
+    private final FacultyRepository facultyRepo;
+    private final DepartmentRepository deptRepo;
 
-    public ClassInchargeService(ClassInchargeRepository classInchargeRepository,
-                                DepartmentRepository departmentRepository,
-                                MessageSource messageSource) {
-        this.classInchargeRepository = classInchargeRepository;
-        this.departmentRepository = departmentRepository;
-        this.messageSource = messageSource;
+    public ClassInchargeService(ClassInchargeRepository repo,
+                                FacultyRepository facultyRepo,
+                                DepartmentRepository deptRepo) {
+        this.repo = repo;
+        this.facultyRepo = facultyRepo;
+        this.deptRepo = deptRepo;
     }
 
-    private String msg(String key) {
-        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
-    }
+    // ✅ CREATE
+    public void create(Long deptId, ClassInchargeRequest req) {
 
-    public List<ClassIncharge> getAll(Long departmentId, String academicYear) {
-        if (academicYear != null && !academicYear.isBlank())
-            return classInchargeRepository.findByDepartmentIdAndAcademicYear(departmentId, academicYear);
-        return classInchargeRepository.findByDepartmentId(departmentId);
-    }
-
-    public void uploadExcel(MultipartFile file, Long departmentId, String academicYear) throws IOException {
-        Department dept = departmentRepository.findById(departmentId)
-                .orElseThrow(() -> new ResourceNotFoundException(msg("department.not.found")));
-        List<Map<String, String>> rows = ExcelHelper.parseExcel(file);
-        for (Map<String, String> row : rows) {
-            ClassIncharge ci = ClassIncharge.builder()
-                    .facultyName(row.get("faculty_name"))
-                    .className(row.get("class_name"))
-                    .section(row.get("section"))
-                    .academicYear(academicYear)
-                    .department(dept)
-                    .build();
-            classInchargeRepository.save(ci);
+        if (repo.existsByClassNameAndAcademicYear(req.getClassName(), req.getAcademicYear())) {
+            throw new RuntimeException("Class already has an incharge");
         }
+
+        if (repo.existsByFacultyIdAndAcademicYear(req.getFacultyId(), req.getAcademicYear())) {
+            throw new RuntimeException("Faculty already assigned to another class");
+        }
+
+        Faculty faculty = facultyRepo.findById(req.getFacultyId())
+                .orElseThrow(() -> new ResourceNotFoundException("Faculty not found"));
+
+        Department dept = deptRepo.findById(deptId)
+                .orElseThrow(() -> new ResourceNotFoundException("Department not found"));
+
+        ClassIncharge entity = ClassIncharge.builder()
+                .className(req.getClassName())
+                .academicYear(req.getAcademicYear())
+                .faculty(faculty)
+                .department(dept)
+                .build();
+
+        repo.save(entity);
     }
 
-    public void delete(Long id, Long departmentId) {
-        ClassIncharge ci = classInchargeRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(msg("classincharge.not.found")));
-        if (!ci.getDepartment().getId().equals(departmentId))
-            throw new ResourceNotFoundException(msg("classincharge.not.found.in.department"));
-        classInchargeRepository.deleteById(id);
+    // ✅ GET ALL
+    public List<ClassIncharge> getAll(Long deptId, String academicYear) {
+        if (academicYear != null)
+            return repo.findByDepartmentIdAndAcademicYear(deptId, academicYear);
+        return repo.findByDepartmentId(deptId);
+    }
+
+    // ✅ GET BY ID (with faculty details automatically)
+    public ClassInchargeResponse getById(Long id, Long deptId) {
+
+        ClassIncharge entity = repo.findByIdAndDepartmentId(id, deptId)
+                .orElseThrow(() -> new ResourceNotFoundException("Not found"));
+
+        return ClassInchargeResponse.builder()
+                .id(entity.getId())
+                .className(entity.getClassName())
+                .academicYear(entity.getAcademicYear())
+                .facultyId(entity.getFaculty().getId())
+                .facultyName(entity.getFaculty().getFacultyName())
+                .email(entity.getFaculty().getEmail())
+                .build();
+    }
+
+    // ✅ UPDATE
+    public void update(Long id, Long deptId, ClassInchargeRequest req) {
+
+        ClassIncharge existing = repo.findByIdAndDepartmentId(id, deptId)
+                .orElseThrow(() -> new ResourceNotFoundException("Not found"));
+
+        // check class uniqueness
+        if (!existing.getClassName().equals(req.getClassName()) &&
+                repo.existsByClassNameAndAcademicYear(req.getClassName(), req.getAcademicYear())) {
+            throw new RuntimeException("Class already assigned");
+        }
+
+        // check faculty uniqueness
+        if (!existing.getFaculty().getId().equals(req.getFacultyId()) &&
+                repo.existsByFacultyIdAndAcademicYear(req.getFacultyId(), req.getAcademicYear())) {
+            throw new RuntimeException("Faculty already assigned");
+        }
+
+        Faculty faculty = facultyRepo.findById(req.getFacultyId())
+                .orElseThrow(() -> new ResourceNotFoundException("Faculty not found"));
+
+        existing.setClassName(req.getClassName());
+        existing.setAcademicYear(req.getAcademicYear());
+        existing.setFaculty(faculty);
+
+        repo.save(existing);
+    }
+
+    // ✅ DELETE
+    public void delete(Long id, Long deptId) {
+        ClassIncharge entity = repo.findByIdAndDepartmentId(id, deptId)
+                .orElseThrow(() -> new ResourceNotFoundException("Not found"));
+
+        repo.delete(entity);
     }
 }
