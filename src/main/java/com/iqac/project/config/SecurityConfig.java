@@ -32,14 +32,28 @@ public class SecurityConfig {
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/iqac/auth/login").permitAll()
-                .requestMatchers("/iqac/auth/change-password").hasAnyRole("HOD", "FACULTY")
-                .requestMatchers(HttpMethod.GET, "/iqac/**").hasAnyRole("HOD", "FACULTY")
-                .requestMatchers("/iqac/department/**").hasRole("HOD")
-                .requestMatchers("/iqac/faculty/**").hasRole("HOD")
+                .requestMatchers("/iqac/auth/change-password").hasAnyRole("HOD", "FACULTY", "IQAC_COORDINATOR")
+                // coordinator
+                .requestMatchers("/iqac/coordinator/me").hasRole("IQAC_COORDINATOR")
+                .requestMatchers(HttpMethod.PUT, "/iqac/coordinator/me").hasRole("IQAC_COORDINATOR")
+                // hod
+                .requestMatchers("/iqac/hod/me").hasRole("HOD")
+                .requestMatchers(HttpMethod.PUT, "/iqac/hod/me").hasRole("HOD")
+                .requestMatchers("/iqac/hod/**").hasRole("IQAC_COORDINATOR")
+                // faculty
+                .requestMatchers("/iqac/faculty/me").hasRole("FACULTY")
+                .requestMatchers(HttpMethod.PUT, "/iqac/faculty/me").hasRole("FACULTY")
+                // department
+                .requestMatchers(HttpMethod.POST, "/iqac/department/**").hasRole("IQAC_COORDINATOR")
+                .requestMatchers(HttpMethod.PUT, "/iqac/department/**").hasRole("IQAC_COORDINATOR")
+                .requestMatchers(HttpMethod.DELETE, "/iqac/department/**").hasRole("IQAC_COORDINATOR")
+                // academics
                 .requestMatchers("/iqac/academics/**").hasRole("HOD")
-                .requestMatchers(HttpMethod.POST, "/iqac/**").hasRole("HOD")
-                .requestMatchers(HttpMethod.PUT, "/iqac/**").hasRole("HOD")
-                .requestMatchers(HttpMethod.DELETE, "/iqac/**").hasRole("HOD")
+                // generic
+                .requestMatchers(HttpMethod.GET, "/iqac/**").hasAnyRole("HOD", "FACULTY", "IQAC_COORDINATOR")
+                .requestMatchers(HttpMethod.POST, "/iqac/**").hasAnyRole("HOD", "IQAC_COORDINATOR")
+                .requestMatchers(HttpMethod.PUT, "/iqac/**").hasAnyRole("HOD", "FACULTY", "IQAC_COORDINATOR")
+                .requestMatchers(HttpMethod.DELETE, "/iqac/**").hasAnyRole("HOD", "IQAC_COORDINATOR")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

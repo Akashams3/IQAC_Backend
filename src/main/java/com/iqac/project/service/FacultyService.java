@@ -35,10 +35,16 @@ public class FacultyService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    // HOD: faculty in same dept | IQAC: all faculty
     public List<Faculty> getAll(Long departmentId) {
         return facultyRepository.findByDepartmentId(departmentId);
     }
 
+    public List<Faculty> getAllAcrossDepts() {
+        return facultyRepository.findAll();
+    }
+
+    // HOD: faculty in same dept by id | IQAC: any by id
     public Faculty getById(Long id, Long departmentId) {
         Faculty faculty = facultyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Faculty not found"));
@@ -47,6 +53,18 @@ public class FacultyService {
         return faculty;
     }
 
+    public Faculty getByIdForIqac(Long id) {
+        return facultyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Faculty not found"));
+    }
+
+    // FACULTY: own profile
+    public Faculty getOwnProfile(String email) {
+        return facultyRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Profile not found"));
+    }
+
+    // HOD: create faculty in own dept | IQAC: create faculty with explicit deptId
     public Faculty create(FacultyDTO dto, Long departmentId) {
         if (facultyRepository.existsByEmail(dto.getEmail()) || userRepository.existsByEmail(dto.getEmail()))
             throw new DuplicateResourceException("Email already exists");
@@ -54,31 +72,31 @@ public class FacultyService {
         Department dept = departmentRepository.findById(departmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Department not found"));
 
-        Faculty faculty = Faculty.builder()
+        Faculty faculty = facultyRepository.save(Faculty.builder()
                 .facultyName(dto.getFacultyName())
                 .email(dto.getEmail())
                 .designation(dto.getDesignation())
                 .department(dept)
-                .build();
-        facultyRepository.save(faculty);
+                .build());
 
         Role facultyRole = roleRepository.findByRoleName("FACULTY")
-                .orElseThrow(() -> new ResourceNotFoundException("Faculty role not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("FACULTY role not found"));
 
-        User user = User.builder()
+        userRepository.save(User.builder()
                 .email(dto.getEmail())
                 .password(passwordEncoder.encode("Faculty@1234"))
                 .role(facultyRole)
                 .department(dept)
-                .build();
-        userRepository.save(user);
+                .build());
 
         return faculty;
     }
 
-    public Faculty update(Long id, FacultyDTO dto, Long departmentId) {
-        Faculty existing = getById(id, departmentId);
-        if (facultyRepository.existsByEmailAndIdNot(dto.getEmail(), id))
+    // FACULTY: update own profile only
+    public Faculty updateOwn(String email, FacultyDTO dto) {
+        Faculty existing = facultyRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Profile not found"));
+        if (facultyRepository.existsByEmailAndIdNot(dto.getEmail(), existing.getId()))
             throw new DuplicateResourceException("Email already exists");
         existing.setFacultyName(dto.getFacultyName());
         existing.setEmail(dto.getEmail());
@@ -86,8 +104,15 @@ public class FacultyService {
         return facultyRepository.save(existing);
     }
 
+    // HOD: delete faculty in own dept | IQAC: delete any
     public void delete(Long id, Long departmentId) {
         Faculty faculty = getById(id, departmentId);
+        userRepository.findByEmail(faculty.getEmail()).ifPresent(userRepository::delete);
+        facultyRepository.deleteById(id);
+    }
+
+    public void deleteForIqac(Long id) {
+        Faculty faculty = getByIdForIqac(id);
         userRepository.findByEmail(faculty.getEmail()).ifPresent(userRepository::delete);
         facultyRepository.deleteById(id);
     }

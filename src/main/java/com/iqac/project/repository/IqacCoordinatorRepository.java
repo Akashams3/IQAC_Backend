@@ -1,13 +1,13 @@
 package com.iqac.project.repository;
 
-import com.iqac.project.entity.Faculty;
+import com.iqac.project.entity.IqacCoordinator;
 import org.springframework.data.jpa.repository.JpaRepository;
+
 import java.util.List;
 import java.util.Optional;
 
-public interface FacultyRepository extends JpaRepository<Faculty, Long> {
-    List<Faculty> findByDepartmentId(Long departmentId);
-    Optional<Faculty> findByEmail(String email);
+public interface IqacCoordinatorRepository extends JpaRepository<IqacCoordinator, Long> {
+    Optional<IqacCoordinator> findByEmail(String email);
     boolean existsByEmail(String email);
     boolean existsByEmailAndIdNot(String email, Long id);
 }

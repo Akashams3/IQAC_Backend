@@ -2,6 +2,7 @@ package com.iqac.project.service;
 
 import com.iqac.project.dto.DepartmentDTO;
 import com.iqac.project.entity.Department;
+import com.iqac.project.exception.ResourceNotFoundException;
 import com.iqac.project.repository.DepartmentRepository;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -28,8 +29,23 @@ public class DepartmentService {
         return departmentRepository.findAll();
     }
 
+    public Department getById(Long id) {
+        return departmentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(msg("department.not.found")));
+    }
+
     public Department create(DepartmentDTO dto) {
         Department dept = Department.builder().deptName(dto.getDeptName()).build();
         return departmentRepository.save(dept);
+    }
+
+    public Department update(Long id, DepartmentDTO dto) {
+        Department dept = getById(id);
+        dept.setDeptName(dto.getDeptName());
+        return departmentRepository.save(dept);
+    }
+
+    public void delete(Long id) {
+        departmentRepository.delete(getById(id));
     }
 }
