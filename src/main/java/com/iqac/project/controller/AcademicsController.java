@@ -4,9 +4,13 @@ import com.iqac.project.dto.ClassInchargeRequest;
 import com.iqac.project.dto.ClassInchargeResponse;
 import com.iqac.project.dto.ClassMentorRequest;
 import com.iqac.project.dto.ClassMentorResponse;
+import com.iqac.project.dto.LessonPlanRequest;
+import com.iqac.project.entity.LessonPlan;
 import com.iqac.project.entity.Timetable;
+import com.iqac.project.repository.FacultyRepository;
 import com.iqac.project.service.ClassInchargeService;
 import com.iqac.project.service.ClassMentorService;
+import com.iqac.project.service.LessonPlanService;
 import com.iqac.project.service.TimetableService;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -20,19 +24,24 @@ import java.io.IOException;
 import java.util.List;
 
 @RestController
-@RequestMapping("/iqac/academics/planning")
+@RequestMapping("/iqac/academics")
 public class AcademicsController {
 
     private final TimetableService timetableService;
     private final ClassInchargeService classInchargeService;
     private final ClassMentorService classMentorService;
+    private final LessonPlanService lessonPlanService;
+    private final FacultyRepository facultyRepository;
     private final MessageSource messageSource;
 
     public AcademicsController(TimetableService timetableService, ClassInchargeService classInchargeService,
-                               ClassMentorService classMentorService, MessageSource messageSource) {
+                               ClassMentorService classMentorService, LessonPlanService lessonPlanService,
+                               FacultyRepository facultyRepository, MessageSource messageSource) {
         this.timetableService = timetableService;
         this.classInchargeService = classInchargeService;
         this.classMentorService = classMentorService;
+        this.lessonPlanService = lessonPlanService;
+        this.facultyRepository = facultyRepository;
         this.messageSource = messageSource;
     }
 
@@ -47,7 +56,7 @@ public class AcademicsController {
     // ── Timetable ──────────────────────────────────────────────
 
     @PreAuthorize("hasAnyRole('IQAC_COORDINATOR','HOD')")
-    @GetMapping("/timetable")
+    @GetMapping("/planning/timetable")
     public ResponseEntity<List<Timetable>> getAllTimetable(
             @RequestParam(required = false) String academicYear,
             @RequestParam(required = false) String semester,
@@ -56,7 +65,7 @@ public class AcademicsController {
     }
 
     @PreAuthorize("hasRole('IQAC_COORDINATOR')")
-    @PostMapping("/timetable/upload")
+    @PostMapping("/planning/timetable/upload")
     public ResponseEntity<String> uploadTimetable(
             @RequestParam("file") MultipartFile file,
             @RequestParam String academicYear,
@@ -68,7 +77,7 @@ public class AcademicsController {
     }
 
     @PreAuthorize("hasRole('IQAC_COORDINATOR')")
-    @PutMapping("/timetable/{year}/{semester}/{day}/{period}")
+    @PutMapping("/planning/timetable/{year}/{semester}/{day}/{period}")
     public ResponseEntity<String> updateBySlot(
             @PathVariable String year,
             @PathVariable String semester,
@@ -85,7 +94,7 @@ public class AcademicsController {
     }
 
     @PreAuthorize("hasAnyRole('IQAC_COORDINATOR','HOD')")
-    @GetMapping("/timetable/download")
+    @GetMapping("/planning/timetable/download")
     public ResponseEntity<byte[]> download(
             @RequestParam String academicYear,
             @RequestParam String semester,
@@ -102,7 +111,7 @@ public class AcademicsController {
     }
 
     @PreAuthorize("hasRole('IQAC_COORDINATOR')")
-    @DeleteMapping("/timetable")
+    @DeleteMapping("/planning/timetable")
     public ResponseEntity<String> deleteByFilter(
             @RequestParam String academicYear,
             @RequestParam String semester,
@@ -115,7 +124,7 @@ public class AcademicsController {
     // ── Class Incharge ─────────────────────────────────────────
 
     @PreAuthorize("hasRole('IQAC_COORDINATOR')")
-    @PostMapping("/incharge")
+    @PostMapping("/planning/incharge")
     public ResponseEntity<String> createIncharge(
             @RequestBody ClassInchargeRequest req,
             Authentication auth) {
@@ -124,7 +133,7 @@ public class AcademicsController {
     }
 
     @PreAuthorize("hasAnyRole('IQAC_COORDINATOR', 'HOD')")
-    @GetMapping("/incharge")
+    @GetMapping("/planning/incharge")
     public ResponseEntity<List<ClassInchargeResponse>> getAllIncharge(
             @RequestParam(required = false) String academicYear,
             Authentication auth) {
@@ -132,7 +141,7 @@ public class AcademicsController {
     }
 
     @PreAuthorize("hasAnyRole('IQAC_COORDINATOR', 'HOD')")
-    @GetMapping("/incharge/{id}")
+    @GetMapping("/planning/incharge/{id}")
     public ResponseEntity<ClassInchargeResponse> getById(
             @PathVariable Long id,
             Authentication auth) {
@@ -143,7 +152,7 @@ public class AcademicsController {
     }
 
     @PreAuthorize("hasRole('IQAC_COORDINATOR')")
-    @PutMapping("/incharge/{id}")
+    @PutMapping("/planning/incharge/{id}")
     public ResponseEntity<String> updateIncharge(
             @PathVariable Long id,
             @RequestBody ClassInchargeRequest req,
@@ -153,7 +162,7 @@ public class AcademicsController {
     }
 
     @PreAuthorize("hasRole('IQAC_COORDINATOR')")
-    @DeleteMapping("/incharge")
+    @DeleteMapping("/planning/incharge")
     public ResponseEntity<String> deleteInchargeByYear(
             @RequestParam String academicYear,
             Authentication auth) {
@@ -162,7 +171,7 @@ public class AcademicsController {
     }
 
     @PreAuthorize("hasRole('IQAC_COORDINATOR')")
-    @DeleteMapping("/incharge/{id}")
+    @DeleteMapping("/planning/incharge/{id}")
     public ResponseEntity<String> deleteIncharge(
             @PathVariable Long id,
             Authentication auth) {
@@ -173,7 +182,7 @@ public class AcademicsController {
     // ── Class Mentor ───────────────────────────────────────────
 
     @PreAuthorize("hasRole('IQAC_COORDINATOR')")
-    @PostMapping("/mentor")
+    @PostMapping("/planning/mentor")
     public ResponseEntity<String> createMentor(
             @RequestBody ClassMentorRequest req,
             Authentication auth) {
@@ -182,7 +191,7 @@ public class AcademicsController {
     }
 
     @PreAuthorize("hasAnyRole('IQAC_COORDINATOR','HOD')")
-    @GetMapping("/mentor")
+    @GetMapping("/planning/mentor")
     public ResponseEntity<List<ClassMentorResponse>> getAllMentor(
             @RequestParam(required = false) String academicYear,
             Authentication auth) {
@@ -190,7 +199,7 @@ public class AcademicsController {
     }
 
     @PreAuthorize("hasAnyRole('IQAC_COORDINATOR','HOD')")
-    @GetMapping("/mentor/{id}")
+    @GetMapping("/planning/mentor/{id}")
     public ResponseEntity<ClassMentorResponse> getMentorById(
             @PathVariable Long id,
             Authentication auth) {
@@ -198,7 +207,7 @@ public class AcademicsController {
     }
 
     @PreAuthorize("hasRole('IQAC_COORDINATOR')")
-    @PutMapping("/mentor/{id}")
+    @PutMapping("/planning/mentor/{id}")
     public ResponseEntity<String> updateMentor(
             @PathVariable Long id,
             @RequestBody ClassMentorRequest req,
@@ -208,7 +217,7 @@ public class AcademicsController {
     }
 
     @PreAuthorize("hasRole('IQAC_COORDINATOR')")
-    @DeleteMapping("/mentor")
+    @DeleteMapping("/planning/mentor")
     public ResponseEntity<String> deleteMentorByYear(
             @RequestParam String academicYear,
             Authentication auth) {
@@ -217,11 +226,77 @@ public class AcademicsController {
     }
 
     @PreAuthorize("hasRole('IQAC_COORDINATOR')")
-    @DeleteMapping("/mentor/{id}")
+    @DeleteMapping("/planning/mentor/{id}")
     public ResponseEntity<String> deleteMentor(
             @PathVariable Long id,
             Authentication auth) {
         classMentorService.delete(id, getDeptId(auth));
+        return ResponseEntity.ok("Deleted successfully");
+    }
+
+    // ── Lesson Plan ────────────────────────────────────────────
+
+    @PreAuthorize("hasRole('FACULTY')")
+    @PostMapping("/planning/lesson-plan")
+    public ResponseEntity<String> createLessonPlan(
+            @RequestBody LessonPlanRequest req,
+            Authentication auth) {
+        Long facultyId = facultyRepository.findByEmail(auth.getName())
+                .orElseThrow(() -> new RuntimeException("Faculty not found")).getId();
+        lessonPlanService.create(facultyId, getDeptId(auth), req);
+        return ResponseEntity.ok("Created successfully");
+    }
+
+    @PreAuthorize("hasRole('FACULTY')")
+    @GetMapping("/planning/lesson-plan/my")
+    public ResponseEntity<List<LessonPlan>> getMyLessonPlans(Authentication auth) {
+        Long facultyId = facultyRepository.findByEmail(auth.getName())
+                .orElseThrow(() -> new RuntimeException("Faculty not found")).getId();
+        return ResponseEntity.ok(lessonPlanService.getByFaculty(facultyId));
+    }
+
+    @PreAuthorize("hasAnyRole('IQAC_COORDINATOR','HOD')")
+    @GetMapping("/planning/lesson-plan")
+    public ResponseEntity<List<LessonPlan>> getAllLessonPlans(
+            @RequestParam(required = false) String academicYear,
+            Authentication auth) {
+        return ResponseEntity.ok(lessonPlanService.getByDept(getDeptId(auth), academicYear));
+    }
+
+    @PreAuthorize("hasRole('FACULTY')")
+    @PutMapping("/planning/lesson-plan/{id}")
+    public ResponseEntity<String> updateLessonPlan(
+            @PathVariable Long id,
+            @RequestBody LessonPlanRequest req,
+            Authentication auth) {
+        lessonPlanService.update(id, getDeptId(auth), req);
+        return ResponseEntity.ok("Updated successfully");
+    }
+
+    @PreAuthorize("hasRole('FACULTY')")
+    @PutMapping("/planning/lesson-plan/{id}/submit")
+    public ResponseEntity<String> submitLessonPlan(
+            @PathVariable Long id,
+            Authentication auth) {
+        lessonPlanService.submit(id, getDeptId(auth));
+        return ResponseEntity.ok("Submitted successfully");
+    }
+
+    @PreAuthorize("hasRole('HOD')")
+    @PutMapping("/planning/lesson-plan/{id}/approve")
+    public ResponseEntity<String> approveLessonPlan(
+            @PathVariable Long id,
+            Authentication auth) {
+        lessonPlanService.approve(id, getDeptId(auth));
+        return ResponseEntity.ok("Approved successfully");
+    }
+
+    @PreAuthorize("hasRole('FACULTY')")
+    @DeleteMapping("/planning/lesson-plan/{id}")
+    public ResponseEntity<String> deleteLessonPlan(
+            @PathVariable Long id,
+            Authentication auth) {
+        lessonPlanService.delete(id, getDeptId(auth));
         return ResponseEntity.ok("Deleted successfully");
     }
 }
