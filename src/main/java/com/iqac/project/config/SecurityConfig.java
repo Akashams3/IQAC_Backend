@@ -68,6 +68,16 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.DELETE, "/iqac/academics/planning/lesson-plan/**")
                     .hasAnyRole("FACULTY")
 
+                    //Curriculum-syllabus
+                    .requestMatchers(HttpMethod.POST, "/iqac/academics/planning/curriculum-syllabus/**")
+                    .hasRole("IQAC_COORDINATOR")
+
+                    .requestMatchers(HttpMethod.GET, "/iqac/academics/planning/curriculum-syllabus/**")
+                    .hasAnyRole("HOD","IQAC_COORDINATOR")
+
+                    .requestMatchers(HttpMethod.DELETE, "/iqac/academics/planning/curriculum-syllabus/**")
+                    .hasRole("IQAC_COORDINATOR")
+
                 // academics - timetable, incharge, mentor
                     .requestMatchers(HttpMethod.GET, "/iqac/academics/**")
                     .hasAnyRole("HOD","IQAC_COORDINATOR")

@@ -5,13 +5,11 @@ import com.iqac.project.dto.ClassInchargeResponse;
 import com.iqac.project.dto.ClassMentorRequest;
 import com.iqac.project.dto.ClassMentorResponse;
 import com.iqac.project.dto.LessonPlanRequest;
+import com.iqac.project.entity.CurriculumSyllabus;
 import com.iqac.project.entity.LessonPlan;
 import com.iqac.project.entity.Timetable;
 import com.iqac.project.repository.FacultyRepository;
-import com.iqac.project.service.ClassInchargeService;
-import com.iqac.project.service.ClassMentorService;
-import com.iqac.project.service.LessonPlanService;
-import com.iqac.project.service.TimetableService;
+import com.iqac.project.service.*;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +21,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.List;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+
 @RestController
 @RequestMapping("/iqac/academics")
 public class AcademicsController {
@@ -31,16 +33,18 @@ public class AcademicsController {
     private final ClassInchargeService classInchargeService;
     private final ClassMentorService classMentorService;
     private final LessonPlanService lessonPlanService;
+    private final CurriculumSyllabusService curriculumSyllabusService;
     private final FacultyRepository facultyRepository;
     private final MessageSource messageSource;
 
     public AcademicsController(TimetableService timetableService, ClassInchargeService classInchargeService,
-                               ClassMentorService classMentorService, LessonPlanService lessonPlanService,
+                               ClassMentorService classMentorService, LessonPlanService lessonPlanService, CurriculumSyllabusService curriculumSyllabusService,
                                FacultyRepository facultyRepository, MessageSource messageSource) {
         this.timetableService = timetableService;
         this.classInchargeService = classInchargeService;
         this.classMentorService = classMentorService;
         this.lessonPlanService = lessonPlanService;
+        this.curriculumSyllabusService = curriculumSyllabusService;
         this.facultyRepository = facultyRepository;
         this.messageSource = messageSource;
     }
@@ -142,7 +146,7 @@ public class AcademicsController {
 
     @PreAuthorize("hasAnyRole('IQAC_COORDINATOR', 'HOD')")
     @GetMapping("/planning/incharge/{id}")
-    public ResponseEntity<ClassInchargeResponse> getById(
+    public ResponseEntity<ClassInchargeResponse> getInchargeById(
             @PathVariable Long id,
             Authentication auth) {
 
@@ -203,7 +207,10 @@ public class AcademicsController {
     public ResponseEntity<ClassMentorResponse> getMentorById(
             @PathVariable Long id,
             Authentication auth) {
-        return ResponseEntity.ok(classMentorService.getById(id, getDeptId(auth)));
+
+        return ResponseEntity.ok(
+                classMentorService.getById(id, getDeptId(auth))
+        );
     }
 
     @PreAuthorize("hasRole('IQAC_COORDINATOR')")
@@ -297,6 +304,76 @@ public class AcademicsController {
             @PathVariable Long id,
             Authentication auth) {
         lessonPlanService.delete(id, getDeptId(auth));
+        return ResponseEntity.ok("Deleted successfully");
+    }
+
+    // ── Curriculum & Syllabus ─────────────────────────
+
+    @PreAuthorize("hasRole('IQAC_COORDINATOR')")
+    @PostMapping("/planning/curriculum-syllabus")
+    public ResponseEntity<String> upload(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam String academicYear,
+            @RequestParam String semester,
+            @RequestParam String regulation,
+            Authentication auth) throws IOException {
+
+        return ResponseEntity.ok(
+                curriculumSyllabusService.uploadFile(
+                        file,
+                        getDeptId(auth),
+                        academicYear,
+                        semester,
+                        regulation
+                )
+        );
+    }
+
+    @PreAuthorize("hasAnyRole('IQAC_COORDINATOR','HOD')")
+    @GetMapping("/planning/curriculum-syllabus")
+    public ResponseEntity<List<CurriculumSyllabus>> getAll(
+            @RequestParam(required = false) String academicYear,
+            Authentication auth) {
+
+        return ResponseEntity.ok(
+                curriculumSyllabusService.getAll(getDeptId(auth), academicYear)
+        );
+    }
+
+    @PreAuthorize("hasAnyRole('IQAC_COORDINATOR','HOD')")
+    @GetMapping("/planning/curriculum-syllabus/{id}/details")
+    public ResponseEntity<CurriculumSyllabus> getSyllabusById(
+            @PathVariable Long id,
+            Authentication auth) {
+
+        return ResponseEntity.ok(
+                curriculumSyllabusService.getById(id, getDeptId(auth))
+        );
+    }
+
+    @PreAuthorize("hasAnyRole('IQAC_COORDINATOR','HOD')")
+    @GetMapping("/planning/curriculum-syllabus/{id}")
+    public ResponseEntity<byte[]> download(
+            @PathVariable Long id,
+            Authentication auth) throws IOException {
+
+        String filePath = curriculumSyllabusService.getFilePath(id, getDeptId(auth));
+
+        File file = curriculumSyllabusService.downloadFile(filePath);
+
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=" + file.getName())
+                .header("Content-Type", "application/pdf")
+                .body(Files.readAllBytes(file.toPath()));
+    }
+
+    @PreAuthorize("hasRole('IQAC_COORDINATOR')")
+    @DeleteMapping("/planning/curriculum-syllabus/{id}")
+    public ResponseEntity<String> deleteSyllabus(
+            @PathVariable Long id,
+            Authentication auth) {
+
+        curriculumSyllabusService.delete(id, getDeptId(auth));
         return ResponseEntity.ok("Deleted successfully");
     }
 }
