@@ -2,6 +2,9 @@ package com.iqac.project.service;
 
 import com.iqac.project.entity.*;
 import com.iqac.project.repository.*;
+import com.iqac.project.util.AppConstants;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -10,39 +13,40 @@ import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 public class CurriculumSyllabusService {
 
     private final CurriculumSyllabusRepository repo;
     private final DepartmentRepository deptRepo;
 
-    private final String UPLOAD_DIR = "uploads/"; // folder
+    @Value("${file.upload-dir}")
+    private String uploadDir;
 
-    public CurriculumSyllabusService(CurriculumSyllabusRepository repo,
-                                     DepartmentRepository deptRepo) {
+    public CurriculumSyllabusService(CurriculumSyllabusRepository repo, DepartmentRepository deptRepo) {
         this.repo = repo;
         this.deptRepo = deptRepo;
     }
 
-    // ✅ UPLOAD PDF
-
-
     public String uploadFile(MultipartFile file, Long deptId,
-                             String academicYear,
-                             String semester,
+                             String academicYear, String semester,
                              String regulation) throws IOException {
 
-        String uploadDir = System.getProperty("user.dir") + "/uploads/";
+        if (!AppConstants.PDF_CONTENT_TYPE.equals(file.getContentType()))
+            throw new RuntimeException("Only PDF files are allowed");
+
+        if (file.getSize() > AppConstants.MAX_FILE_SIZE)
+            throw new RuntimeException("File size exceeds 10MB limit");
+
+        log.info("Uploading syllabus for dept {}, year {}, semester {}", deptId, academicYear, semester);
 
         File dir = new File(uploadDir);
         if (!dir.exists()) dir.mkdirs();
 
         String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
         File dest = new File(uploadDir + fileName);
-
         file.transferTo(dest);
 
-        // 🔥 SAVE IN DB
         Department dept = deptRepo.findById(deptId)
                 .orElseThrow(() -> new RuntimeException("Department not found"));
 
@@ -56,7 +60,7 @@ public class CurriculumSyllabusService {
                 .build();
 
         repo.save(cs);
-
+        log.info("Syllabus uploaded successfully with id {}", cs.getId());
         return cs.getId().toString();
     }
 
