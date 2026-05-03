@@ -10,6 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.UUID;
 
@@ -38,13 +39,21 @@ public class CurriculumSyllabusService {
         if (file.getSize() > AppConstants.MAX_FILE_SIZE)
             throw new RuntimeException("File size exceeds 10MB limit");
 
-        log.info("Uploading syllabus for dept {}, year {}, semester {}", deptId, academicYear, semester);
+        log.info("Uploading syllabus for dept={}, year={}, semester={}", deptId, academicYear, semester);
 
         File dir = new File(uploadDir);
-        if (!dir.exists()) dir.mkdirs();
+        if (!dir.exists() && !dir.mkdirs())
+            throw new RuntimeException("Failed to create upload directory: " + uploadDir);
 
-        String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
-        File dest = new File(uploadDir + fileName);
+        String safeName = Paths.get(file.getOriginalFilename()).getFileName().toString();
+        String fileName = UUID.randomUUID() + "_" + safeName;
+        File dest = new File(dir, fileName);
+
+        String canonicalDir = dir.getCanonicalPath();
+        String canonicalDest = dest.getCanonicalPath();
+        if (!canonicalDest.startsWith(canonicalDir))
+            throw new RuntimeException("Invalid file path detected");
+
         file.transferTo(dest);
 
         Department dept = deptRepo.findById(deptId)
@@ -54,74 +63,58 @@ public class CurriculumSyllabusService {
                 .academicYear(academicYear)
                 .semester(semester)
                 .regulation(regulation)
-                .fileName(file.getOriginalFilename())
+                .fileName(safeName)
                 .filePath(dest.getAbsolutePath())
                 .department(dept)
                 .build();
 
         repo.save(cs);
-        log.info("Syllabus uploaded successfully with id {}", cs.getId());
+        log.info("Syllabus uploaded successfully with id={}", cs.getId());
         return cs.getId().toString();
     }
 
-    // ✅ GET LIST
     public List<CurriculumSyllabus> getAll(Long deptId, String year) {
+        log.info("Fetching syllabus list for dept={}, year={}", deptId, year);
         if (year != null)
             return repo.findByDepartmentIdAndAcademicYear(deptId, year);
         return repo.findByDepartmentId(deptId);
     }
 
     public CurriculumSyllabus getById(Long id, Long deptId) {
-
+        log.info("Fetching syllabus id={} for dept={}", id, deptId);
         CurriculumSyllabus cs = repo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Not found"));
-
-        if (!cs.getDepartment().getId().equals(deptId)) {
+        if (!cs.getDepartment().getId().equals(deptId))
             throw new RuntimeException("Unauthorized");
-        }
-
         return cs;
     }
 
-    // ✅ DOWNLOAD
-
     public File downloadFile(String filePath) {
-
+        log.info("Downloading file from path={}", filePath);
         File file = new File(filePath);
-
-        if (!file.exists()) {
+        if (!file.exists())
             throw new RuntimeException("File not found");
-        }
-
         return file;
     }
 
-    // ✅ DELETE
     public void delete(Long id, Long deptId) {
-
+        log.info("Deleting syllabus id={} for dept={}", id, deptId);
         CurriculumSyllabus cs = repo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Not found"));
-
-        if (!cs.getDepartment().getId().equals(deptId)) {
+        if (!cs.getDepartment().getId().equals(deptId))
             throw new RuntimeException("Unauthorized");
-        }
-
-        // delete file
-        new File(cs.getFilePath()).delete();
-
+        File file = new File(cs.getFilePath());
+        if (!file.delete())
+            log.warn("Failed to delete physical file: {}", cs.getFilePath());
         repo.delete(cs);
+        log.info("Syllabus id={} deleted successfully", id);
     }
 
     public String getFilePath(Long id, Long deptId) {
-
         CurriculumSyllabus cs = repo.findById(id)
                 .orElseThrow(() -> new RuntimeException("File not found"));
-
-        // ✅ Optional: department check (important for security)
-        if (!cs.getDepartment().getId().equals(deptId)) {
+        if (!cs.getDepartment().getId().equals(deptId))
             throw new RuntimeException("Unauthorized access");
-        }
-
         return cs.getFilePath();
     }
 }
