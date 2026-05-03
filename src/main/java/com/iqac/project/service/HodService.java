@@ -11,11 +11,13 @@ import com.iqac.project.repository.DepartmentRepository;
 import com.iqac.project.repository.HodRepository;
 import com.iqac.project.repository.RoleRepository;
 import com.iqac.project.repository.UserRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Slf4j
 @Service
 public class HodService {
 
@@ -35,25 +37,25 @@ public class HodService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    // IQAC: get all HODs
     public List<Hod> getAll() {
+        log.info("Fetching all HODs");
         return hodRepository.findAll();
     }
 
-    // IQAC: get HOD by id
     public Hod getById(Long id) {
+        log.info("Fetching HOD id={}", id);
         return hodRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("HOD not found"));
     }
 
-    // HOD: own profile
     public Hod getOwnProfile(String email) {
+        log.info("Fetching HOD profile for email={}", email);
         return hodRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Profile not found"));
     }
 
-    // IQAC: create HOD
     public Hod create(HodDTO dto) {
+        log.info("Creating HOD email={}, dept={}", dto.getEmail(), dto.getDepartmentId());
         if (hodRepository.existsByEmail(dto.getEmail()) || userRepository.existsByEmail(dto.getEmail()))
             throw new DuplicateResourceException("Email already exists");
 
@@ -76,11 +78,12 @@ public class HodService {
                 .department(dept)
                 .build());
 
+        log.info("HOD created id={}, email={}", hod.getId(), hod.getEmail());
         return hod;
     }
 
-    // HOD: update own profile only
     public Hod updateOwn(String email, HodDTO dto) {
+        log.info("Updating HOD profile for email={}", email);
         Hod existing = hodRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Profile not found"));
         if (hodRepository.existsByEmailAndIdNot(dto.getEmail(), existing.getId()))
@@ -90,10 +93,11 @@ public class HodService {
         return hodRepository.save(existing);
     }
 
-    // IQAC: delete HOD
     public void delete(Long id) {
+        log.info("Deleting HOD id={}", id);
         Hod hod = getById(id);
         userRepository.findByEmail(hod.getEmail()).ifPresent(userRepository::delete);
         hodRepository.deleteById(id);
+        log.info("HOD id={} deleted", id);
     }
 }

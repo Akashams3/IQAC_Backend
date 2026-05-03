@@ -6,8 +6,10 @@ import com.iqac.project.exception.DuplicateResourceException;
 import com.iqac.project.exception.ResourceNotFoundException;
 import com.iqac.project.repository.IqacCoordinatorRepository;
 import com.iqac.project.repository.UserRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 public class IqacCoordinatorService {
 
@@ -20,22 +22,24 @@ public class IqacCoordinatorService {
     }
 
     public IqacCoordinator getOwnProfile(String email) {
+        log.info("Fetching coordinator profile for email={}", email);
         return coordinatorRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Profile not found"));
     }
 
     public IqacCoordinator updateOwn(String email, CoordinatorDTO dto) {
+        log.info("Updating coordinator profile for email={}", email);
         IqacCoordinator existing = coordinatorRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Profile not found"));
         if (coordinatorRepository.existsByEmailAndIdNot(dto.getEmail(), existing.getId()))
             throw new DuplicateResourceException("Email already exists");
         existing.setCoordinatorName(dto.getCoordinatorName());
         existing.setEmail(dto.getEmail());
-        // sync email in users table
         userRepository.findByEmail(email).ifPresent(u -> {
             u.setEmail(dto.getEmail());
             userRepository.save(u);
         });
+        log.info("Coordinator profile updated for email={}", dto.getEmail());
         return coordinatorRepository.save(existing);
     }
 }
