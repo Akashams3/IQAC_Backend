@@ -1,5 +1,7 @@
 package com.iqac.project.entity;
 
+import com.iqac.project.entity.enums.ApprovalStatus;
+import com.iqac.project.entity.enums.LessonPlanStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -22,15 +24,17 @@ public class LessonPlan {
     private Integer plannedHours;
     private Integer completedHours;
 
-    private String status; // NOT_STARTED, IN_PROGRESS, COMPLETED
+    @Enumerated(EnumType.STRING)
+    private LessonPlanStatus status;
 
     @Column(name = "academic_year")
     private String academicYear;
 
-    private String semester; // ODD / EVEN
+    private String semester;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "approval_status")
-    private String approvalStatus; // DRAFT, SUBMITTED, APPROVED
+    private ApprovalStatus approvalStatus;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "faculty_id")
