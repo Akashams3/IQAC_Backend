@@ -66,8 +66,8 @@ public class LessonPlanService {
         log.info("Updating lesson plan id={}", id);
         LessonPlan lp = repo.findByIdAndDepartmentId(id, deptId)
                 .orElseThrow(() -> new RuntimeException("Not found"));
-        if (lp.getApprovalStatus() == ApprovalStatus.APPROVED)
-            throw new RuntimeException("Cannot edit approved plan");
+        if (lp.getApprovalStatus() != ApprovalStatus.DRAFT)
+            throw new RuntimeException("Only DRAFT plans can be updated");
         lp.setSubject(req.getSubject());
         lp.setUnitName(req.getUnitName());
         lp.setTopic(req.getTopic());
@@ -99,12 +99,22 @@ public class LessonPlanService {
         repo.save(lp);
     }
 
+    public void reject(Long id, Long deptId) {
+        log.info("Rejecting lesson plan id={}", id);
+        LessonPlan lp = repo.findByIdAndDepartmentId(id, deptId)
+                .orElseThrow(() -> new RuntimeException("Not found"));
+        if (lp.getApprovalStatus() != ApprovalStatus.SUBMITTED)
+            throw new RuntimeException("Only submitted plans can be rejected");
+        lp.setApprovalStatus(ApprovalStatus.REJECTED);
+        repo.save(lp);
+    }
+
     public void delete(Long id, Long deptId) {
         log.info("Deleting lesson plan id={}", id);
         LessonPlan lp = repo.findByIdAndDepartmentId(id, deptId)
                 .orElseThrow(() -> new RuntimeException("Not found"));
-        if (lp.getApprovalStatus() == ApprovalStatus.APPROVED)
-            throw new RuntimeException("Cannot delete approved plan");
+        if (lp.getApprovalStatus() != ApprovalStatus.DRAFT)
+            throw new RuntimeException("Only DRAFT plans can be deleted");
         repo.delete(lp);
     }
 

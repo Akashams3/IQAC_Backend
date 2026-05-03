@@ -63,6 +63,13 @@ public class LessonPlanController {
         return ResponseEntity.ok(ApiResponse.of("Approved successfully"));
     }
 
+    @PreAuthorize("hasRole('HOD')")
+    @PutMapping("/{id}/reject")
+    public ResponseEntity<ApiResponse> reject(@PathVariable Long id, Authentication auth) {
+        lessonPlanService.reject(id, authUtil.getDeptId(auth));
+        return ResponseEntity.ok(ApiResponse.of("Rejected successfully"));
+    }
+
     @PreAuthorize("hasRole('FACULTY')")
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse> delete(@PathVariable Long id, Authentication auth) {

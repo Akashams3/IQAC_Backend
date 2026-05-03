@@ -163,9 +163,13 @@ public class EResourceService {
         return file;
     }
 
-    public void delete(Long id, Long deptId) {
-        log.info("Deleting e-resource id={}", id);
+    public void delete(Long id, Long facultyId, Long deptId) {
+        log.info("Deleting e-resource id={} by faculty={}", id, facultyId);
         EResource r = getResource(id, deptId);
+        if (r.getStatus() != ResourceStatus.DRAFT)
+            throw new RuntimeException("Only DRAFT resources can be deleted");
+        if (!r.getFaculty().getId().equals(facultyId))
+            throw new RuntimeException("You can only delete your own resources");
         if (r.getFilePath() != null) {
             File file = new File(r.getFilePath());
             if (!file.delete())

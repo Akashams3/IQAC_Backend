@@ -122,7 +122,7 @@ public class EResourceController {
     @PreAuthorize("hasRole('FACULTY')")
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse> delete(@PathVariable Long id, Authentication auth) {
-        service.delete(id, authUtil.getDeptId(auth));
+        service.delete(id, authUtil.getFacultyId(auth), authUtil.getDeptId(auth));
         return ResponseEntity.ok(ApiResponse.of("Deleted successfully"));
     }
 }
